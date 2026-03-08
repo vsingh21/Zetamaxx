@@ -145,6 +145,8 @@ describe("generateProblem", () => {
   it("operands respect configured min/max ranges", () => {
     const settings: GameSettings = {
       duration: 60,
+      showTimerBar: true,
+      preset: "custom",
       operations: {
         addition: { enabled: true, min1: 5, max1: 10, min2: 3, max2: 7 },
         subtraction: {

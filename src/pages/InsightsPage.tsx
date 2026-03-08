@@ -184,7 +184,6 @@ function RecentSessions({ data }: { data: InsightsData["scoreTrend"] }) {
           >
             <span className="text-gray-400">{s.date}</span>
             <div className="flex items-center gap-4">
-              <span className="text-xs text-gray-600">{s.ppm}/min</span>
               <span className="font-mono font-semibold text-gray-200 tabular-nums">
                 {s.score}
               </span>
