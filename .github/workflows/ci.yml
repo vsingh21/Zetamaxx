@@ -52,7 +52,7 @@ jobs:
         run: find dist -type f
 
       - name: Deploy to Cloudflare Pages
-        run: npx wrangler pages deploy dist --project-name ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}
+        run: npx wrangler pages deploy dist --project-name ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }} --create-if-missing
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
