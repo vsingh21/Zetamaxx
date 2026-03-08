@@ -25,11 +25,78 @@ export default function GameScreen() {
   const inputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const gameOver = useRef(false);
+  const barRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+
+  function startSmoothBar(durationSec: number) {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    const startMs = Date.now();
+    function tick() {
+      const pct = Math.max(
+        0,
+        1 - (Date.now() - startMs) / (durationSec * 1000),
+      );
+      if (barRef.current) barRef.current.style.width = `${pct * 100}%`;
+      if (pct > 0 && !gameOver.current)
+        rafRef.current = requestAnimationFrame(tick);
+    }
+    rafRef.current = requestAnimationFrame(tick);
+  }
+
+  function restartGame() {
+    startSmoothBar(settings.duration);
+    if (timerRef.current) clearInterval(timerRef.current);
+    attemptsRef.current = [];
+    scoreRef.current = 0;
+    problemStartTime.current = Date.now();
+    gameStartedAt.current = new Date().toISOString();
+    gameOver.current = false;
+    setTimeLeft(settings.duration);
+    setScore(0);
+    setProblem(generateProblem(settings));
+    setInputValue("");
+    setShake(false);
+    setFlashGreen(false);
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    inputRef.current?.focus();
+  }
 
   // Focus input on mount
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Smooth bar via rAF
+  useEffect(() => {
+    startSmoothBar(settings.duration);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Window-level listener for restart (handles case when input isn't focused)
+  useEffect(() => {
+    function onWindowKeyDown(e: KeyboardEvent) {
+      if (e.key === "s" || e.key === "S") {
+        // Only restart if not typing in an input other than our game input
+        if (document.activeElement !== inputRef.current) {
+          restartGame();
+        }
+      }
+    }
+    window.addEventListener("keydown", onWindowKeyDown);
+    return () => window.removeEventListener("keydown", onWindowKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings]);
 
   // Countdown timer
   useEffect(() => {
@@ -108,6 +175,11 @@ export default function GameScreen() {
     if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) {
       e.preventDefault();
     }
+    if (e.key === "s" || e.key === "S") {
+      e.preventDefault();
+      restartGame();
+      return;
+    }
     if (e.key === "Enter") {
       e.preventDefault();
       const parsed = parseInt(inputValue, 10);
@@ -144,15 +216,17 @@ export default function GameScreen() {
       onClick={() => inputRef.current?.focus()}
     >
       {/* Timer bar */}
-      <div className="fixed top-0 left-0 right-0 h-1">
-        <div
-          className={`h-full transition-all duration-1000 ${timerPct > 0.4 ? "bg-blue-500" : timerPct > 0.15 ? "bg-yellow-400" : "bg-red-500"}`}
-          style={{ width: `${timerPct * 100}%` }}
-        />
-      </div>
+      {settings.showTimerBar && (
+        <div className="fixed top-0 left-0 right-0 h-1">
+          <div
+            ref={barRef}
+            className={`h-full ${timerPct > 0.4 ? "bg-blue-500" : timerPct > 0.15 ? "bg-yellow-400" : "bg-red-500"}`}
+          />
+        </div>
+      )}
 
       {/* Header row */}
-      <div className="absolute top-6 left-0 right-0 flex justify-between items-center max-w-xl mx-auto px-6">
+      <div className="absolute top-6 left-0 right-0 flex justify-between items-center px-10">
         <div
           className={`font-mono text-5xl font-bold tabular-nums ${timerColor}`}
         >
@@ -192,7 +266,10 @@ export default function GameScreen() {
             autoComplete="off"
           />
         </div>
-        <p className="text-xs text-gray-700">Type the answer</p>
+        <p className="text-xs text-gray-700">
+          Type the answer &nbsp;·&nbsp; <kbd className="font-mono">S</kbd> to
+          restart
+        </p>
       </div>
     </div>
   );

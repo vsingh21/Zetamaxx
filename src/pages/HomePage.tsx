@@ -11,7 +11,7 @@ export default function HomePage() {
             Configure your drill
           </h1>
           <p className="text-sm text-gray-500">
-            Customise operations and ranges, then hit Start
+            Customize operations and ranges, then hit Start
           </p>
         </div>
         <SettingsForm />

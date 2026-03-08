@@ -76,17 +76,13 @@ export function computeInsights(
     matchingSessions.length >= 5 ? matchingSessions : sortedSessions;
   const sameSettingsOnly = matchingSessions.length >= 5;
 
-  // ── Score trend (last 30 sessions) + PPM ───────────────────────────────────
+  // ── Score trend (last 30 sessions) ─────────────────────────────────────────
   const scoreTrend = sortedSessions.slice(-30).map((s) => ({
     date: new Date(s.started_at).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
     }),
     score: s.total_correct,
-    ppm:
-      s.duration_seconds > 0
-        ? Math.round((s.total_correct / s.duration_seconds) * 60 * 10) / 10
-        : 0,
     sessionId: s.id,
   }));
 
@@ -162,35 +158,35 @@ export function computeInsights(
     })
     .filter((v) => v.count > 0);
 
-  // ── Time of day (avg ppm — normalized for duration + op-mix differences) ──
+  // ── Time of day (avg raw score) ──────────────────────────────────────────
   const hourBuckets = new Array(24)
     .fill(null)
-    .map(() => ({ totalPpm: 0, count: 0 }));
+    .map(() => ({ totalScore: 0, count: 0 }));
   for (const s of sessions) {
     const hour = new Date(s.started_at).getHours();
-    hourBuckets[hour].totalPpm += ppm(s);
+    hourBuckets[hour].totalScore += s.total_correct;
     hourBuckets[hour].count += 1;
   }
   const timeOfDay: TimeOfDayStat[] = hourBuckets.map((b, hour) => ({
     hour,
-    avgScore: b.count > 0 ? Math.round((b.totalPpm / b.count) * 10) / 10 : 0,
+    avgScore: b.count > 0 ? Math.round((b.totalScore / b.count) * 10) / 10 : 0,
     sessionCount: b.count,
   }));
 
-  // ── Day of week (avg ppm) ──────────────────────────────────────────────────
+  // ── Day of week (avg raw score) ─────────────────────────────────────────────
   const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const dayBuckets = new Array(7)
     .fill(null)
-    .map(() => ({ totalPpm: 0, count: 0 }));
+    .map(() => ({ totalScore: 0, count: 0 }));
   for (const s of sessions) {
     const day = new Date(s.started_at).getDay();
-    dayBuckets[day].totalPpm += ppm(s);
+    dayBuckets[day].totalScore += s.total_correct;
     dayBuckets[day].count += 1;
   }
   const dayOfWeek: DayOfWeekStat[] = dayBuckets.map((b, day) => ({
     day,
     label: dayLabels[day],
-    avgScore: b.count > 0 ? Math.round((b.totalPpm / b.count) * 10) / 10 : 0,
+    avgScore: b.count > 0 ? Math.round((b.totalScore / b.count) * 10) / 10 : 0,
     sessionCount: b.count,
   }));
 

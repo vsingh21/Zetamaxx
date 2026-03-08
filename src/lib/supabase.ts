@@ -21,7 +21,7 @@ export async function signUp(
   password: string,
   username: string,
 ) {
-  const trimmedUsername = username.trim().toLowerCase();
+  const trimmedUsername = username.trim();
 
   // Check username uniqueness before creating auth user
   const { data: existing } = await supabase

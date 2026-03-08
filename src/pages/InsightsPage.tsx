@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { fetchAllSessions, fetchAllAttempts } from "../lib/supabase";
 import { computeInsights } from "../lib/insights";
-import type { InsightsData } from "../types";
+import { PRESETS } from "../lib/gameLogic";
+import type { InsightsData, GameSession, DbProblemAttempt } from "../types";
 import Navbar from "../components/common/Navbar";
 import {
   InsightStatCards,
@@ -19,9 +20,11 @@ import {
 
 export default function InsightsPage() {
   const { user } = useAuth();
-  const [insights, setInsights] = useState<InsightsData | null>(null);
+  const [allSessions, setAllSessions] = useState<GameSession[]>([]);
+  const [allAttempts, setAllAttempts] = useState<DbProblemAttempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedPreset, setSelectedPreset] = useState<string>("all");
 
   useEffect(() => {
     if (!user) return;
@@ -39,26 +42,67 @@ export default function InsightsPage() {
         return;
       }
 
-      const computed = computeInsights(
-        sessionsRes.data ?? [],
-        attemptsRes.data ?? [],
-      );
-      setInsights(computed);
+      setAllSessions(sessionsRes.data ?? []);
+      setAllAttempts(attemptsRes.data ?? []);
       setLoading(false);
     }
 
     load();
   }, [user]);
 
+  // Derive which presets have sessions
+  const presentPresetIds = useMemo(() => {
+    const ids = new Set(allSessions.map((s) => s.settings?.preset ?? "custom"));
+    return ids;
+  }, [allSessions]);
+
+  const insights = useMemo(() => {
+    if (allSessions.length === 0) return null;
+    let sessions = allSessions;
+    let attempts = allAttempts;
+    if (selectedPreset !== "all") {
+      sessions = allSessions.filter(
+        (s) => (s.settings?.preset ?? "custom") === selectedPreset,
+      );
+      const sessionIds = new Set(sessions.map((s) => s.id));
+      attempts = allAttempts.filter((a) => sessionIds.has(a.session_id));
+    }
+    return computeInsights(sessions, attempts);
+  }, [allSessions, allAttempts, selectedPreset]);
+
   return (
     <div className="min-h-screen">
       <Navbar />
       <main className="max-w-5xl mx-auto px-4 py-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-100 mb-1">Insights</h1>
-          <p className="text-sm text-gray-500">
-            Analyse your performance patterns and track improvement
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-100 mb-1">Insights</h1>
+            <p className="text-sm text-gray-500">
+              Analyse your performance patterns and track improvement
+            </p>
+          </div>
+          {!loading && allSessions.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500 whitespace-nowrap">
+                Preset:
+              </label>
+              <select
+                className="bg-gray-800 border border-gray-700 text-gray-100 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedPreset}
+                onChange={(e) => setSelectedPreset(e.target.value)}
+              >
+                <option value="all">All</option>
+                {PRESETS.filter((p) => presentPresetIds.has(p.id)).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+                {presentPresetIds.has("custom") && (
+                  <option value="custom">Custom</option>
+                )}
+              </select>
+            </div>
+          )}
         </div>
 
         {loading && (

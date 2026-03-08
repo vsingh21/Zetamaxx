@@ -44,9 +44,6 @@ export function ScoreTrendChart({
       <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
         Score trend
       </h3>
-      <p className="text-xs text-gray-600 mb-4">
-        Raw score and problems/min (normalised for duration)
-      </p>
       <ResponsiveContainer width="100%" height={220}>
         <LineChart
           data={data}
@@ -54,19 +51,13 @@ export function ScoreTrendChart({
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
           <XAxis dataKey="date" tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <YAxis yAxisId="score" tick={{ fill: "#6b7280", fontSize: 11 }} />
-          <YAxis
-            yAxisId="ppm"
-            orientation="right"
-            tick={{ fill: "#6b7280", fontSize: 11 }}
-          />
+          <YAxis tick={{ fill: "#6b7280", fontSize: 11 }} />
           <Tooltip
             contentStyle={TOOLTIP_STYLE}
             itemStyle={TOOLTIP_ITEM_STYLE}
             labelStyle={TOOLTIP_LABEL_STYLE}
           />
           <Line
-            yAxisId="score"
             type="monotone"
             dataKey="score"
             name="Score"
@@ -75,23 +66,8 @@ export function ScoreTrendChart({
             dot={{ r: 3, fill: "#3b82f6" }}
             activeDot={{ r: 5 }}
           />
-          <Line
-            yAxisId="ppm"
-            type="monotone"
-            dataKey="ppm"
-            name="Per min"
-            stroke="#10b981"
-            strokeWidth={1.5}
-            strokeDasharray="4 2"
-            dot={false}
-            activeDot={{ r: 4 }}
-          />
         </LineChart>
       </ResponsiveContainer>
-      <div className="flex gap-5 mt-2 pl-1">
-        <LegendDot color="#3b82f6" label="Score" />
-        <LegendDot color="#10b981" label="Per min" dashed />
-      </div>
     </div>
   );
 }
@@ -126,7 +102,7 @@ export function TimeOfDayChart({ data }: { data: InsightsData["timeOfDay"] }) {
           <div className="font-mono font-bold text-indigo-400">
             {HOUR_LABELS(peak.hour)}
           </div>
-          <div className="text-xs text-gray-600">{peak.avgScore}/min avg</div>
+          <div className="text-xs text-gray-600">{peak.avgScore} avg</div>
         </div>
       </div>
       <ResponsiveContainer width="100%" height={190}>
@@ -146,8 +122,8 @@ export function TimeOfDayChart({ data }: { data: InsightsData["timeOfDay"] }) {
             itemStyle={TOOLTIP_ITEM_STYLE}
             labelStyle={TOOLTIP_LABEL_STYLE}
             formatter={(v, _n, props) => [
-              `${v}/min avg (${props.payload.sessionCount} session${props.payload.sessionCount !== 1 ? "s" : ""})`,
-              "Problems/min",
+              `${v} avg (${props.payload.sessionCount} session${props.payload.sessionCount !== 1 ? "s" : ""})`,
+              "Avg score",
             ]}
           />
           <Bar dataKey="avgScore" radius={[3, 3, 0, 0]}>
@@ -194,7 +170,7 @@ export function DayOfWeekChart({ data }: { data: InsightsData["dayOfWeek"] }) {
           <div className="font-mono font-bold text-indigo-400">
             {best.label}
           </div>
-          <div className="text-xs text-gray-600">{best.avgScore}/min avg</div>
+          <div className="text-xs text-gray-600">{best.avgScore} avg</div>
         </div>
       </div>
       <ResponsiveContainer width="100%" height={180}>
@@ -210,8 +186,8 @@ export function DayOfWeekChart({ data }: { data: InsightsData["dayOfWeek"] }) {
             itemStyle={TOOLTIP_ITEM_STYLE}
             labelStyle={TOOLTIP_LABEL_STYLE}
             formatter={(v, _n, props) => [
-              `${v}/min avg (${props.payload.sessionCount} session${props.payload.sessionCount !== 1 ? "s" : ""})`,
-              "Problems/min",
+              `${v} avg (${props.payload.sessionCount} session${props.payload.sessionCount !== 1 ? "s" : ""})`,
+              "Avg score",
             ]}
           />
           <Bar dataKey="avgScore" radius={[3, 3, 0, 0]}>

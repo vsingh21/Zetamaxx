@@ -14,6 +14,8 @@ export interface OperationConfig {
 
 export interface GameSettings {
   duration: number; // seconds
+  showTimerBar: boolean;
+  preset: string; // preset id, or "custom"
   operations: Record<Operation, OperationConfig>;
 }
 
@@ -136,7 +138,7 @@ export interface ImprovementTrend {
 }
 
 export interface InsightsData {
-  scoreTrend: { date: string; score: number; ppm: number; sessionId: string }[];
+  scoreTrend: { date: string; score: number; sessionId: string }[];
   operationTimeTrend: {
     date: string;
     sessionId: string;
