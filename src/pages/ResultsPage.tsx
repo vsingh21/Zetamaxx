@@ -127,31 +127,34 @@ export default function ResultsPage() {
               {(() => {
                 const maxAvg = Math.max(...opStats.map((s) => s.avgTimeSec), 0);
                 return opStats.map(({ op, total, avgTimeSec: opAvg }) => (
-                <div key={op} className="flex items-center gap-3">
-                  <div className="text-sm text-gray-300 w-28 shrink-0">
-                    {operationLabel(op)}
-                  </div>
-                  {/* bar — width proportional to avg response time */}
-                  <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                  <div key={op} className="flex items-center gap-3">
+                    <div className="text-sm text-gray-300 w-28 shrink-0">
+                      {operationLabel(op)}
+                    </div>
+                    {/* bar — width proportional to avg response time */}
+                    <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width:
+                            maxAvg > 0
+                              ? `${Math.round((opAvg / maxAvg) * 100)}%`
+                              : "0%",
+                          backgroundColor: operationColor(op),
+                        }}
+                      />
+                    </div>
                     <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: maxAvg > 0 ? `${Math.round((opAvg / maxAvg) * 100)}%` : "0%",
-                        backgroundColor: operationColor(op),
-                      }}
-                    />
+                      className="font-mono text-sm font-semibold tabular-nums w-6 text-right"
+                      style={{ color: operationColor(op) }}
+                    >
+                      {total}
+                    </div>
+                    <div className="text-xs text-gray-600 font-mono tabular-nums w-12 text-right">
+                      {opAvg}s
+                    </div>
                   </div>
-                  <div
-                    className="font-mono text-sm font-semibold tabular-nums w-6 text-right"
-                    style={{ color: operationColor(op) }}
-                  >
-                    {total}
-                  </div>
-                  <div className="text-xs text-gray-600 font-mono tabular-nums w-12 text-right">
-                    {opAvg}s
-                  </div>
-                </div>
-              ));
+                ));
               })()}
             </div>
             {(fastestOp || slowestOp) && (
