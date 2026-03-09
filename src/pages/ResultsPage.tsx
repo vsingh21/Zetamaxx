@@ -124,17 +124,19 @@ export default function ResultsPage() {
               By operation
             </h2>
             <div className="space-y-3">
-              {opStats.map(({ op, total, avgTimeSec: opAvg }) => (
+              {(() => {
+                const maxAvg = Math.max(...opStats.map((s) => s.avgTimeSec), 0);
+                return opStats.map(({ op, total, avgTimeSec: opAvg }) => (
                 <div key={op} className="flex items-center gap-3">
                   <div className="text-sm text-gray-300 w-28 shrink-0">
                     {operationLabel(op)}
                   </div>
-                  {/* bar */}
+                  {/* bar — width proportional to avg response time */}
                   <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"
                       style={{
-                        width: `${Math.round((total / lastScore) * 100)}%`,
+                        width: maxAvg > 0 ? `${Math.round((opAvg / maxAvg) * 100)}%` : "0%",
                         backgroundColor: operationColor(op),
                       }}
                     />
@@ -149,7 +151,8 @@ export default function ResultsPage() {
                     {opAvg}s
                   </div>
                 </div>
-              ))}
+              ));
+              })()}
             </div>
             {(fastestOp || slowestOp) && (
               <div className="flex gap-4 mt-4 pt-4 border-t border-gray-800">
