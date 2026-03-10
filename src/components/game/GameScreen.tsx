@@ -14,7 +14,6 @@ export default function GameScreen() {
     generateProblem(settings),
   );
   const [inputValue, setInputValue] = useState("");
-  const [shake, setShake] = useState(false);
   const [flashGreen, setFlashGreen] = useState(false);
 
   // Use refs for mutable game data — avoids stale closures in timer callbacks
@@ -55,7 +54,6 @@ export default function GameScreen() {
     setScore(0);
     setProblem(generateProblem(settings));
     setInputValue("");
-    setShake(false);
     setFlashGreen(false);
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
@@ -126,7 +124,7 @@ export default function GameScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
-  function advanceProblem(wasCorrect: boolean, userAnswer: number | null) {
+  function advanceProblem(userAnswer: number) {
     const timeTaken = Date.now() - problemStartTime.current;
     const attempt: ProblemAttempt = {
       operation: problem.operation,
@@ -134,30 +132,18 @@ export default function GameScreen() {
       operand2: problem.operand2,
       correctAnswer: problem.answer,
       userAnswer,
-      isCorrect: wasCorrect,
+      isCorrect: true,
       timeTakenMs: timeTaken,
     };
-
     attemptsRef.current.push(attempt);
-
-    if (wasCorrect) {
-      scoreRef.current += 1;
-      setScore((s) => s + 1);
-      setFlashGreen(true);
-      setTimeout(() => setFlashGreen(false), 200);
-    } else {
-      setShake(true);
-      setTimeout(() => setShake(false), 350);
-    }
-
-    if (wasCorrect) {
-      const next = generateProblem(settings);
-      setProblem(next);
-      problemStartTime.current = Date.now();
-      setInputValue("");
-    } else {
-      setInputValue("");
-    }
+    scoreRef.current += 1;
+    setScore((s) => s + 1);
+    setFlashGreen(true);
+    setTimeout(() => setFlashGreen(false), 200);
+    const next = generateProblem(settings);
+    setProblem(next);
+    problemStartTime.current = Date.now();
+    setInputValue("");
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -180,13 +166,6 @@ export default function GameScreen() {
       restartGame();
       return;
     }
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const parsed = parseInt(inputValue, 10);
-      if (isNaN(parsed) || inputValue.trim() === "") return;
-      const correct = parsed === problem.answer;
-      advanceProblem(correct, parsed);
-    }
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -197,7 +176,7 @@ export default function GameScreen() {
     const parsed = parseInt(raw, 10);
     if (!isNaN(parsed) && raw !== "" && raw !== "-") {
       if (parsed === problem.answer) {
-        advanceProblem(true, parsed);
+        advanceProblem(parsed);
       }
     }
   }
@@ -245,7 +224,7 @@ export default function GameScreen() {
       {/* Problem + input */}
       <div className="flex flex-col items-center gap-8 mt-10">
         <div
-          className={`font-mono text-7xl sm:text-8xl font-bold text-gray-100 tabular-nums tracking-tight animate-fade-in ${shake ? "animate-shake" : ""}`}
+          className={`font-mono text-7xl sm:text-8xl font-bold text-gray-100 tabular-nums tracking-tight animate-fade-in`}
           key={`${problem.operand1}-${problem.operand2}-${problem.operation}`}
         >
           {problem.displayStr}
@@ -255,9 +234,7 @@ export default function GameScreen() {
           <input
             ref={inputRef}
             type="number"
-            className={`font-mono text-5xl sm:text-6xl font-bold text-center bg-transparent border-0 border-b-4 w-48 text-gray-100 focus:outline-none tabular-nums caret-blue-400 transition-colors ${
-              shake ? "border-red-500" : "border-gray-600 focus:border-blue-500"
-            }`}
+            className={`font-mono text-5xl sm:text-6xl font-bold text-center bg-transparent border-0 border-b-4 w-48 text-gray-100 focus:outline-none tabular-nums caret-blue-400 transition-colors border-gray-600 focus:border-blue-500`}
             value={inputValue}
             onChange={handleChange}
             onKeyDown={handleKeyDown}

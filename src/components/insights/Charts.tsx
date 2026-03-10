@@ -39,6 +39,41 @@ export function ScoreTrendChart({
 }) {
   if (data.length < 2)
     return <EmptyChart label="Play at least 2 sessions to see your trend" />;
+
+  const spanMs =
+    data.length > 1 ? data[data.length - 1].timestamp - data[0].timestamp : 0;
+  const sameDay = spanMs < 24 * 60 * 60 * 1000;
+
+  const tickFormatter = (ts: number) => {
+    if (sameDay) {
+      return new Date(ts).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    }
+    return new Date(ts).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const labelFormatter = (label: unknown) => {
+    const ts = Number(label);
+    if (isNaN(ts)) return String(label);
+    if (sameDay) {
+      return new Date(ts).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    }
+    return new Date(ts).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
   return (
     <div className="card">
       <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
@@ -50,12 +85,21 @@ export function ScoreTrendChart({
           margin={{ top: 4, right: 4, bottom: 0, left: -20 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-          <XAxis dataKey="date" tick={{ fill: "#6b7280", fontSize: 11 }} />
+          <XAxis
+            dataKey="timestamp"
+            type="number"
+            scale="time"
+            domain={["dataMin", "dataMax"]}
+            tickFormatter={tickFormatter}
+            tick={{ fill: "#6b7280", fontSize: 11 }}
+            tickCount={Math.min(data.length, 6)}
+          />
           <YAxis tick={{ fill: "#6b7280", fontSize: 11 }} />
           <Tooltip
             contentStyle={TOOLTIP_STYLE}
             itemStyle={TOOLTIP_ITEM_STYLE}
             labelStyle={TOOLTIP_LABEL_STYLE}
+            labelFormatter={labelFormatter}
           />
           <Line
             type="monotone"
@@ -680,8 +724,7 @@ export function WeakAreasTable({ data }: { data: WeakArea[] }) {
           Weak areas
         </h3>
         <p className="text-sm text-gray-600 mt-2">
-          No weak areas yet — every problem with ≥3 attempts is being answered
-          correctly. Keep it up!
+          No weak areas yet — play more sessions so problems start repeating.
         </p>
       </div>
     );
@@ -693,7 +736,7 @@ export function WeakAreasTable({ data }: { data: WeakArea[] }) {
         Weak areas
       </h3>
       <p className="text-xs text-gray-600 mb-4">
-        Problems answered incorrectly at least once (≥3 total attempts)
+        Problems you've seen 3+ times that take you longer than average
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -739,14 +782,24 @@ export function WeakAreasTable({ data }: { data: WeakArea[] }) {
 // ─── Slowest problems table ────────────────────────────────────────────────────
 
 export function SlowestProblemsTable({ data }: { data: SlowestProblem[] }) {
-  if (data.length === 0) return null;
+  if (data.length === 0)
+    return (
+      <div className="card">
+        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
+          Slowest problems
+        </h3>
+        <p className="text-sm text-gray-600">
+          Answer each problem at least twice to see your slowest ones.
+        </p>
+      </div>
+    );
   return (
     <div className="card overflow-hidden">
       <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-1">
         Slowest problems
       </h3>
       <p className="text-xs text-gray-600 mb-4">
-        Where you spend the most time — regardless of correctness
+        Problems you take longer than average to answer
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -795,7 +848,7 @@ export function InsightStatCards({ data }: { data: InsightsData }) {
   const stats = [
     { label: "Best score", value: data.bestScore },
     { label: "Total sessions", value: data.totalSessions },
-    { label: "Total correct", value: data.totalProblems.toLocaleString() },
+    { label: "Total problems", value: data.totalProblems.toLocaleString() },
     { label: "Current streak", value: `${data.currentStreak}d` },
   ];
 

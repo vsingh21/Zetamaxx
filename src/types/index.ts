@@ -80,8 +80,6 @@ export interface DbProblemAttempt {
 export interface OperationStat {
   operation: Operation;
   totalAttempts: number;
-  correctAttempts: number;
-  accuracy: number;
   avgTimeSec: number;
 }
 
@@ -97,7 +95,6 @@ export interface WeakArea {
   operand2: number;
   displayStr: string;
   attempts: number;
-  accuracy: number;
   avgTimeSec: number;
 }
 
@@ -138,7 +135,12 @@ export interface ImprovementTrend {
 }
 
 export interface InsightsData {
-  scoreTrend: { date: string; score: number; sessionId: string }[];
+  scoreTrend: {
+    date: string;
+    score: number;
+    sessionId: string;
+    timestamp: number;
+  }[];
   operationTimeTrend: {
     date: string;
     sessionId: string;

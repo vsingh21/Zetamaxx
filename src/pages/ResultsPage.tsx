@@ -16,6 +16,19 @@ export default function ResultsPage() {
   );
   const hasSaved = useRef(false);
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (
+        (e.key === "s" || e.key === "S") &&
+        !(e.target instanceof HTMLInputElement)
+      ) {
+        navigate("/game");
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [navigate]);
+
   const totalAttempted = lastAttempts.length;
   const ppm =
     settings.duration > 0

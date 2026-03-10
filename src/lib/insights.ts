@@ -33,7 +33,7 @@ export function computeInsights(
   attempts: DbProblemAttempt[],
 ): InsightsData {
   const totalSessions = sessions.length;
-  const totalProblems = attempts.filter((a) => a.is_correct).length;
+  const totalProblems = attempts.length;
   const bestScore = sessions.reduce(
     (best, s) => Math.max(best, s.total_correct),
     0,
@@ -77,13 +77,26 @@ export function computeInsights(
   const sameSettingsOnly = matchingSessions.length >= 5;
 
   // ── Score trend (last 30 sessions) ─────────────────────────────────────────
-  const scoreTrend = sortedSessions.slice(-30).map((s) => ({
-    date: new Date(s.started_at).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    }),
+  const trendSessions = sortedSessions.slice(-30);
+  const trendSpanMs =
+    trendSessions.length > 1
+      ? new Date(trendSessions[trendSessions.length - 1].started_at).getTime() -
+        new Date(trendSessions[0].started_at).getTime()
+      : 0;
+  const trendSameDay = trendSpanMs < 24 * 60 * 60 * 1000;
+  const scoreTrend = trendSessions.map((s) => ({
+    date: trendSameDay
+      ? new Date(s.started_at).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : new Date(s.started_at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
     score: s.total_correct,
     sessionId: s.id,
+    timestamp: new Date(s.started_at).getTime(),
   }));
 
   // ── Improvement trend (last 5 vs previous 5, same settings, ppm) ────────────
@@ -129,7 +142,6 @@ export function computeInsights(
   ];
   const operationStats: OperationStat[] = ops.map((op) => {
     const opAttempts = attempts.filter((a) => a.operation === op);
-    const correct = opAttempts.filter((a) => a.is_correct).length;
     const avgTimeSec =
       opAttempts.length > 0
         ? opAttempts.reduce((sum, a) => sum + a.time_taken_ms, 0) /
@@ -139,8 +151,6 @@ export function computeInsights(
     return {
       operation: op,
       totalAttempts: opAttempts.length,
-      correctAttempts: correct,
-      accuracy: 0,
       avgTimeSec: Math.round(avgTimeSec * 10) / 10,
     };
   });
@@ -198,7 +208,6 @@ export function computeInsights(
       a: number;
       b: number;
       attempts: number;
-      correct: number;
       totalTimeMs: number;
     }
   >();
@@ -207,7 +216,6 @@ export function computeInsights(
     const existing = problemMap.get(key);
     if (existing) {
       existing.attempts++;
-      if (a.is_correct) existing.correct++;
       existing.totalTimeMs += a.time_taken_ms;
     } else {
       problemMap.set(key, {
@@ -215,34 +223,42 @@ export function computeInsights(
         a: a.operand1,
         b: a.operand2,
         attempts: 1,
-        correct: a.is_correct ? 1 : 0,
         totalTimeMs: a.time_taken_ms,
       });
     }
   }
 
-  // ── Weak areas (most frequently missed problems) ───────────────────────────
-  const weakAreas: WeakArea[] = Array.from(problemMap.values())
-    .filter((p) => p.attempts >= 3 && p.correct < p.attempts)
-    .map((p) => {
-      const avgTimeSec =
-        Math.round((p.totalTimeMs / p.attempts / 1000) * 10) / 10;
-      return {
-        operation: p.op,
-        operand1: p.a,
-        operand2: p.b,
-        displayStr: `${p.a} ${opSymbols[p.op]} ${p.b}`,
-        attempts: p.attempts,
-        accuracy: p.correct / p.attempts,
-        avgTimeSec,
-      };
-    })
-    .sort((a, b) => a.accuracy - b.accuracy || b.avgTimeSec - a.avgTimeSec)
+  // ── Weak areas (slow recurring problems, seen ≥3 times, above mean time) ──
+  const recurringProblems = Array.from(problemMap.values())
+    .filter((p) => p.attempts >= 3)
+    .map((p) => ({
+      op: p.op,
+      a: p.a,
+      b: p.b,
+      attempts: p.attempts,
+      avgTimeSec: Math.round((p.totalTimeMs / p.attempts / 1000) * 10) / 10,
+    }));
+  const recurringMeanSec =
+    recurringProblems.length > 0
+      ? recurringProblems.reduce((s, p) => s + p.avgTimeSec, 0) /
+        recurringProblems.length
+      : 0;
+  const weakAreas: WeakArea[] = recurringProblems
+    .filter((p) => p.avgTimeSec > recurringMeanSec)
+    .map((p) => ({
+      operation: p.op,
+      operand1: p.a,
+      operand2: p.b,
+      displayStr: `${p.a} ${opSymbols[p.op]} ${p.b}`,
+      attempts: p.attempts,
+      avgTimeSec: p.avgTimeSec,
+    }))
+    .sort((a, b) => b.avgTimeSec - a.avgTimeSec)
     .slice(0, 15);
 
-  // ── Slowest problems (by avg response time, ≥3 attempts) ──────────────────
+  // ── Slowest problems (by avg response time, ≥2 attempts) ──────────────────
   const slowestProblems: SlowestProblem[] = Array.from(problemMap.values())
-    .filter((p) => p.attempts >= 3)
+    .filter((p) => p.attempts >= 2)
     .map((p) => ({
       operation: p.op,
       operand1: p.a,
@@ -252,17 +268,17 @@ export function computeInsights(
       attempts: p.attempts,
     }))
     .sort((a, b) => b.avgTimeSec - a.avgTimeSec)
-    .slice(0, 15);
+    .slice(0, 10);
 
   // ── Multiplication table heatmap (2–12 × 2–12) ────────────────────────────
   const multHeatmap: MultHeatmapCell[] = [];
   for (let a = 2; a <= 12; a++) {
     for (let b = 2; b <= 12; b++) {
       // Check both orderings (commutative)
-      const keyAB = `multiplication:${a * b}:${a}`;
-      const keyBA = `multiplication:${a * b}:${b}`;
+      const keyAB = `multiplication:${a}:${b}`;
+      const keyBA = `multiplication:${b}:${a}`;
       const entryAB = problemMap.get(keyAB);
-      const entryBA = problemMap.get(keyBA);
+      const entryBA = b !== a ? problemMap.get(keyBA) : undefined;
       const combined = [entryAB, entryBA].filter(Boolean);
       if (combined.length === 0) {
         multHeatmap.push({ a, b, avgTimeSec: null, attempts: 0 });

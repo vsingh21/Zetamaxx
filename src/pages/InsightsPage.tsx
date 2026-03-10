@@ -168,7 +168,7 @@ export default function InsightsPage() {
 }
 
 function RecentSessions({ data }: { data: InsightsData["scoreTrend"] }) {
-  const recent = [...data].reverse().slice(0, 10);
+  const recent = [...data].reverse().slice(0, 30);
   if (recent.length === 0) return null;
 
   return (
@@ -176,20 +176,37 @@ function RecentSessions({ data }: { data: InsightsData["scoreTrend"] }) {
       <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
         Recent sessions
       </h3>
-      <div className="space-y-2">
-        {recent.map((s, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-between text-sm border-b border-gray-800/50 last:border-0 pb-2 last:pb-0"
-          >
-            <span className="text-gray-400">{s.date}</span>
-            <div className="flex items-center gap-4">
-              <span className="font-mono font-semibold text-gray-200 tabular-nums">
-                {s.score}
-              </span>
-            </div>
-          </div>
-        ))}
+      <div
+        className="overflow-y-auto"
+        style={{ maxHeight: "calc(5 * 2.5rem)" }}
+      >
+        <div className="space-y-0">
+          {recent.map((s, i) => {
+            const dt = new Date(s.timestamp);
+            const dateStr = dt.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            });
+            const timeStr = dt.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            });
+            return (
+              <div
+                key={i}
+                className="flex items-center justify-between text-sm border-b border-gray-800/50 last:border-0 py-2"
+              >
+                <span className="text-gray-400">
+                  {dateStr}{" "}
+                  <span className="text-gray-600 text-xs">{timeStr}</span>
+                </span>
+                <span className="font-mono font-semibold text-gray-200 tabular-nums">
+                  {s.score}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
