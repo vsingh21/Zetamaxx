@@ -177,7 +177,7 @@ function RecentSessions({ data }: { data: InsightsData["scoreTrend"] }) {
         Recent sessions
       </h3>
       <div
-        className="overflow-y-auto"
+        className="overflow-y-auto scrollbar-thin pr-2"
         style={{ maxHeight: "calc(5 * 2.5rem)" }}
       >
         <div className="space-y-0">
