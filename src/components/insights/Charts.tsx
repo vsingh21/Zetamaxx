@@ -640,7 +640,7 @@ export function MultTableHeatmap({ data }: { data: MultHeatmapCell[] }) {
           {cols.map((b) => (
             <div
               key={b}
-              className="w-9 h-7 flex items-center justify-center text-xs font-mono text-gray-500 font-semibold shrink-0"
+              className="w-9 h-7 flex items-center justify-center text-xs font-mono text-gray-500 font-semibold shrink-0 m-px"
             >
               {b}
             </div>
